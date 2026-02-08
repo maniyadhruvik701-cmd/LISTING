@@ -131,7 +131,7 @@ function renderTable() {
         tr.innerHTML = `
             <td>${globalIndex + 1}</td>
             <td><input type="date" class="table-input" value="${row.date || ''}" onchange="updateData(${globalIndex}, 'date', this.value)"></td>
-            <td><input type="text" class="table-input" value="${row.designNo || ''}" placeholder="Design" onchange="updateData(${globalIndex}, 'designNo', this.value)"></td>
+            <td><input type="text" class="table-input" style="width: ${Math.max((row.designNo || '').length + 2, 12)}ch;" value="${row.designNo || ''}" placeholder="Design" oninput="this.style.width = (Math.max(this.value.length + 2, 12)) + 'ch'" onchange="updateData(${globalIndex}, 'designNo', this.value)"></td>
             ${companyCells}
             <td><input type="text" class="table-input" value="${row.remark || ''}" placeholder="Remark" onchange="updateData(${globalIndex}, 'remark', this.value)"></td>
             <td><button style="color:red; background:none; border:none; cursor:pointer;" onclick="deleteRow(${globalIndex})"><i class="fas fa-trash"></i></button></td>
