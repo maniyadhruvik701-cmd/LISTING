@@ -435,6 +435,37 @@ header h1 {
 .controls {
     display: flex;
     gap: 10px;
+    align-items: center;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-light);
+}
+
+.search-box input {
+    padding: 12px 15px 12px 40px;
+    margin: 0;
+    width: 250px;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.search-box input:focus {
+    box-shadow: none;
+    border: 1px solid var(--secondary-color);
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    color: #a0aec0;
+    font-size: 14px;
+    pointer-events: none;
 }
 
 .btn-primary {
