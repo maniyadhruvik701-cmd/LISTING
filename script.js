@@ -125,7 +125,7 @@ function renderTable() {
 
         let companyCells = '';
         COMPANIES.forEach(comp => {
-            companyCells += `<td><input type="text" class="table-input" style="min-width: 50px;" value="${row[comp] || ''}" onchange="updateData(${globalIndex}, '${comp}', this.value)"></td>`;
+            companyCells += `<td><input type="text" class="table-input" style="width: ${Math.max((row[comp] || '').length + 2, 10)}ch;" value="${row[comp] || ''}" oninput="this.style.width = (Math.max(this.value.length + 2, 10)) + 'ch'" onchange="updateData(${globalIndex}, '${comp}', this.value)"></td>`;
         });
 
         tr.innerHTML = `
@@ -263,18 +263,8 @@ generateReportBtn.addEventListener('click', () => {
             } else {
                 // Cell is Empty. Is it Pending?
 
-                if (comp === 'AJIO-DE') {
-                    // Special Rule for AJIO-DE
-                    if (!rowHasData) {
-                        // Totally empty row -> AJIO-DE counts as 0 (Excluded from baseline pending)
-                    } else {
-                        // Partially filled row -> AJIO-DE counts as 1 (Included in pending list)
-                        designStats[d][comp] += 1;
-                    }
-                } else {
-                    // Normal Company -> If empty, it is pending
-                    designStats[d][comp] += 1;
-                }
+                // Normal Company -> If empty, it is pending
+                designStats[d][comp] += 1;
             }
         });
     });
@@ -303,7 +293,12 @@ generateReportBtn.addEventListener('click', () => {
 
     // Rows
     designs.forEach(design => {
+        // Calculate Row Total First
         let rowTotal = 0;
+        COMPANIES.forEach(c => rowTotal += designStats[design][c]);
+
+        // Filter: Show only if there are pending items
+        if (rowTotal === 0) return;
 
         html += `<tr>
                     <td style="padding:10px; font-weight:bold;">${design}</td>`;
@@ -311,8 +306,6 @@ generateReportBtn.addEventListener('click', () => {
         COMPANIES.forEach(comp => {
             const pendingCount = designStats[design][comp];
 
-            // Accumulate Row Total
-            rowTotal += pendingCount;
             // Accumulate Column Total
             columnTotals[comp] += pendingCount;
 
