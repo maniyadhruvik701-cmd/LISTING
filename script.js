@@ -27,6 +27,7 @@ const pageInfo = document.getElementById('page-info');
 const jumpPageBtn = document.getElementById('jump-page-btn');
 const jumpPageInput = document.getElementById('jump-page-input');
 const generateReportBtn = document.getElementById('generate-report');
+const searchInput = document.getElementById('search-input');
 
 // === Auth Logic ===
 /* 
@@ -102,25 +103,63 @@ navItems.forEach(item => {
 // Populate Datalist - Removed as we have columns now.
 
 // === Data Entry Logic ===
+// Search Listener
+searchInput.addEventListener('input', () => {
+    currentPage = 1;
+    renderTable();
+});
+
 function renderTable() {
     dataTableBody.innerHTML = '';
+    const query = searchInput.value.toLowerCase().trim();
 
-    // Ensure we have enough rows for the current page
+    // 1. Prepare Data (Filter if needed)
+    let dataMap = stockData.map((row, index) => ({ row, index }));
+
+    if (query) {
+        dataMap = dataMap.filter(item => {
+            const design = (item.row.designNo || '').toLowerCase();
+            const date = (item.row.date || '').toLowerCase();
+            const remark = (item.row.remark || '').toLowerCase();
+            return design.includes(query) || date.includes(query) || remark.includes(query);
+        });
+    }
+
+    // 2. Pagination Calculation
+    const totalItems = dataMap.length;
+    const totalPages = Math.ceil(totalItems / entriesPerPage) || 1;
+
+    // Adjust currentPage if out of bounds (unless searching leads to 0 results, we stay on page 1)
+    if (currentPage > totalPages && totalItems > 0) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
     const startIndex = (currentPage - 1) * entriesPerPage;
     const endIndex = startIndex + entriesPerPage;
 
-    if (stockData.length === 0) {
-        addEmptyRows(20);
+    // 3. Auto-expand rows (Only if NOT searching)
+    if (!query && stockData.length < endIndex) {
+        while (stockData.length < endIndex) {
+            stockData.push(createEmptyRow());
+        }
+        localStorage.setItem('stockData', JSON.stringify(stockData));
+        // Re-map because stockData grew
+        dataMap = stockData.map((row, index) => ({ row, index }));
     }
 
-    while (stockData.length < endIndex) {
-        stockData.push(createEmptyRow());
+    // 4. Slice for Page
+    // If searching, we interpret pagination over the FILTERED results
+    const pageItems = dataMap.slice(startIndex, endIndex);
+
+    if (pageItems.length === 0 && query) {
+        dataTableBody.innerHTML = '<tr><td colspan="100%" style="text-align:center; padding:20px;">No results found</td></tr>';
+        pageInfo.innerText = `Page 0 of 0`;
+        return;
     }
 
-    const pageData = stockData.slice(startIndex, endIndex);
-
-    pageData.forEach((row, index) => {
-        const globalIndex = startIndex + index;
+    // 5. Render Rows
+    pageItems.forEach((item) => {
+        const globalIndex = item.index;
+        const row = item.row;
         const tr = document.createElement('tr');
 
         let companyCells = '';
@@ -139,8 +178,8 @@ function renderTable() {
         dataTableBody.appendChild(tr);
     });
 
-    pageInfo.innerText = `Page ${currentPage}`;
-    localStorage.setItem('stockData', JSON.stringify(stockData));
+    pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+    // Save is manual or on specific update, not general render
 }
 
 function createEmptyRow() {
@@ -154,6 +193,7 @@ function addEmptyRows(count) {
     for (let i = 0; i < count; i++) {
         stockData.push(createEmptyRow());
     }
+    localStorage.setItem('stockData', JSON.stringify(stockData));
     renderTable();
 }
 
@@ -186,29 +226,57 @@ prevPageBtn.addEventListener('click', () => {
 });
 
 nextPageBtn.addEventListener('click', () => {
-    const totalPages = Math.ceil(stockData.length / entriesPerPage);
+    // Calculate Total Pages dynamically
+    const query = searchInput.value.toLowerCase().trim();
+    let effectiveLen = stockData.length;
+    if (query) {
+        effectiveLen = stockData.filter(r =>
+            (r.designNo || '').toLowerCase().includes(query) ||
+            (r.remark || '').toLowerCase().includes(query) ||
+            (r.date || '').toLowerCase().includes(query)
+        ).length;
+    }
+    const totalPages = Math.ceil(effectiveLen / entriesPerPage) || 1;
+
     if (currentPage < totalPages) {
         currentPage++;
         renderTable();
-    } else {
+    } else if (!query) {
+        // Only offer to create new page if NOT searching
         if (confirm("Create new page?")) {
-            addEmptyRows(20);
+            // Add rows but don't auto-render twice
+            const needed = 20;
+            for (let i = 0; i < needed; i++) stockData.push(createEmptyRow());
             currentPage++;
+            renderTable();
         }
     }
 });
 
 jumpPageBtn.addEventListener('click', () => {
     const page = parseInt(jumpPageInput.value);
-    const totalPages = Math.ceil(stockData.length / entriesPerPage);
+
+    // Calculate Total Pages
+    const query = searchInput.value.toLowerCase().trim();
+    let effectiveLen = stockData.length;
+    if (query) {
+        effectiveLen = stockData.filter(r =>
+            (r.designNo || '').toLowerCase().includes(query) ||
+            (r.remark || '').toLowerCase().includes(query) ||
+            (r.date || '').toLowerCase().includes(query)
+        ).length;
+    }
+    const totalPages = Math.ceil(effectiveLen / entriesPerPage) || 1;
+
     if (page >= 1 && page <= totalPages) {
         currentPage = page;
         renderTable();
-    } else if (page > totalPages) {
+    } else if (page > totalPages && !query) {
         if (confirm(`Page ${page} doesn't exist. Create up to it?`)) {
             const rowsNeeded = (page * entriesPerPage) - stockData.length;
             addEmptyRows(rowsNeeded);
             currentPage = page;
+            renderTable(); // ensure we see the new page
         }
     }
 });
