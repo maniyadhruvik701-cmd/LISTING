@@ -1,6 +1,6 @@
 const COMPANIES = [
     "AJIO", "AJIO-DE", "AJIO TANUKA", "AMZONE", "MY-DE", "MY-JIHU",
-    "T CENTER TC", "WEBSITE HONEST", "RTW", "MS", "BB", "DREAM"
+    "T CENTER TC", "WEBSITE HONEST", "RTW", "MS", "BB", "DREAM", "TRENDY CULTURE"
 ];
 
 // State
